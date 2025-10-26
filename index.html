@@ -1,0 +1,577 @@
+
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avaliação de Resiliência Cibernética</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      margin: 0;
+    }
+    .card-shadow {
+      box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    .option-selected {
+      background-color: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    .option-selected .checkmark { display: block; }
+    .checkmark { display: none; }
+    .loading-bar-container {
+      width: 40%;
+      max-width: 500px;
+      height: 20px;
+      background-color: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .loading-bar {
+      height: 100%;
+      width: 0%;
+      background-color: #000;
+      border-radius: 10px;
+      transition: width 0.1s linear;
+    }
+    .welcome-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      width: 100%;
+      padding: 2rem;
+      box-sizing: border-box;
+      height: 100vh;
+    }
+    .welcome-text {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #000;
+      margin-bottom: 2rem;
+      line-height: 1.2;
+      max-width: 80%;
+      animation: fadeIn 0.8s ease-out forwards;
+    }
+    .start-button {
+      background-color: #000;
+      color: white;
+      border: none;
+      padding: 1rem 2.5rem;
+      font-size: 1.2rem;
+      font-weight: 500;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .start-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* Estilos do Disco de Progresso */
+    .progress-circle-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin-bottom: 1rem;
+       padding: 20px 0;
+      box-sizing: border-box;
+    }
+    .progress-circle-wrapper {
+      position: relative;
+      width: 250px;
+       height: 250px;
+     }
+    .progress-circle-wrapper svg {
+      transform: rotate(-90deg);
+    }
+    .progress-bg,
+    .progress-bar {
+      fill: none;
+      stroke-width: 24;
+    }
+    .progress-bg {
+      stroke: #e0dcd8;
+    }
+    .progress-bar {
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.8s ease-out, stroke 0.8s ease-out;
+    }
+    .progress-main-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2.5em;
+       color: #333;
+       font-weight: bold;
+      text-align: center;
+      line-height: 1.2;
+      max-width: 80%;
+      pointer-events: none;
+     }
+    /* Cores para o disco */
+    .progress-bar.red { stroke: #ef4444; } /* Vermelho para risco alto */
+    .progress-bar.yellow { stroke: #fcd34d; } /* Amarelo para risco considerável */
+    .progress-bar.green { stroke: #22c55e; } /* Verde para risco baixo */
+
+    /* Classes para o texto de risco fora do disco */
+    .risk-message {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-top: 0.5rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    .risk-message.red { color: #ef4444; }
+    .risk-message.yellow { color: #fcd34d; }
+    .risk-message.green { color: #22c55e; }
+
+    /* Estilo para o contêiner principal do formulário */
+    #formulario {
+      min-height: 100vh;
+      align-items: flex-start;
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="flex flex-col items-center justify-center h-screen space-y-4" id="loading-screen">
+    <div class="loading-bar-container">
+      <div class="loading-bar" id="loading-bar"></div>
+    </div>
+    <div class="text-gray-700" id="loading-text">Carregando...</div>
+  </div>
+
+  <div class="welcome-screen" id="welcome-screen">
+    <div class="flex flex-col items-center justify-center space-y-8">
+      <div class="welcome-text">Bem-vindo à Avaliação de Resiliência</div>
+      <button class="start-button" type="button" onclick="startForm()">Iniciar</button>
+    </div>
+  </div>
+
+  <div class="welcome-screen" id="role-selection-screen">
+    <div class="flex flex-col items-center justify-center space-y-8">
+      <div class="welcome-text">Quem está respondendo esta avaliação?</div>
+      <div class="space-y-4 w-full max-w-sm">
+        <button class="start-button w-full" type="button" onclick="proceedToForm('proprietario')">
+          Sou o proprietário e/ou responsável pela empresa
+        </button>
+        <button class="start-button w-full" type="button" onclick="proceedToForm('ti')">
+          Sou o TI responsável pelo setor de tecnologia da empresa
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="min-h-screen flex items-center justify-center p-4 hidden" id="formulario">
+    <div class="w-full max-w-md">
+
+      <div class="mb-6" id="progressContainer">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-sm font-medium text-gray-500" id="progressText"></span>
+          <span class="text-sm font-medium text-blue-500" id="progressPercent"></span>
+        </div>
+        <div class="w-full h-2 bg-gray-200 rounded overflow-hidden">
+          <div class="h-full bg-blue-500 transition-all duration-300" id="progressFill"></div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl card-shadow p-6 hidden" id="formularioDados">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800 text-center">Receba o resultado da sua avaliação</h2>
+        <div class="text-left space-y-4">
+          <label class="block">Seu nome
+            <input type="text" id="nome" class="block w-full border rounded-lg p-3 mt-1 focus:ring-blue-500 focus:border-blue-500"/>
+          </label>
+          <label class="block">Seu melhor telefone
+            <input type="text" id="telefone" class="block w-full border rounded-lg p-3 mt-1 focus:ring-blue-500 focus:border-blue-500"/>
+          </label>
+          <label class="block">E-mail
+            <input type="email" id="email" class="block w-full border rounded-lg p-3 mt-1 focus:ring-blue-500 focus:border-blue-500"/>
+          </label>
+          <label class="block">Nome da sua empresa
+            <input type="text" id="empresa" class="block w-full border rounded-lg p-3 mt-1 focus:ring-blue-500 focus:border-blue-500"/>
+          </label>
+          <label class="block">Nº aproximado de computadores
+            <input type="number" id="computadores" class="block w-full border rounded-lg p-3 mt-1 focus:ring-blue-500 focus:border-blue-500"/>
+          </label>
+          <button type="button" class="w-full start-button mt-4 bg-blue-500 hover:bg-blue-600" onclick="enviarFormulario()">
+            Enviar e ver meu Resultado
+          </button>
+          <p id="alerta" class="text-red-600 text-center hidden mt-3 font-medium">Por favor, preencha todos os campos.</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl card-shadow p-6" id="questionCard"></div>
+
+      <div class="bg-white rounded-xl card-shadow p-6 hidden flex flex-col items-center justify-center" id="resultCard">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">Resultado da Avaliação</h2>
+
+        <div class="progress-circle-container">
+          <div class="progress-circle-wrapper" id="progressCircleWrapper">
+            <div class="progress-main-text" id="diskScoreText"></div>
+          </div>
+          <p class="risk-message" id="scoreMessage"></p>
+         </div>
+
+        <a class="hidden inline-block text-white px-5 py-2 rounded-lg font-semibold mt-4 bg-blue-500 hover:bg-blue-600 transition-colors" id="whatsappButton" target="_blank">Falar com um especialista no WhatsApp</a>
+      </div>
+    </div>
+  </div>
+
+<script>
+    // --- Variáveis e Funções de Carregamento e Navegação ---
+    
+    // SUA URL DO GOOGLE APPS SCRIPT (AGORA IMPLEMENTADA)
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxd9PzfFgZFNnDHseGY-eC-_gd1dot1z8IMCa6ZoOeEMK4nNRa4jgLgCOlMNoKICs3N/exec"; 
+
+    const loadingBar = document.getElementById('loading-bar');
+    const loadingText = document.getElementById('loading-text');
+    const loadingScreen = document.getElementById('loading-screen');
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const formulario = document.getElementById('formulario');
+    const roleSelectionScreen = document.getElementById('role-selection-screen');
+
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 1;
+      loadingBar.style.width = `${progress}%`;
+
+      if (progress >= 100) {
+        clearInterval(interval);
+        loadingText.textContent = "Carregamento completo!";
+        setTimeout(() => {
+          loadingScreen.style.display = 'none';
+          welcomeScreen.style.display = 'flex';
+        }, 500);
+      }
+    }, 20);
+
+    function startForm() {
+      welcomeScreen.style.display = 'none';
+      roleSelectionScreen.style.display = 'flex';
+    }
+
+    // Perguntas (mantidas sem alteração de conteúdo)
+    const perguntasProprietario = [
+      { text: "1. Sua empresa já sofreu ou conhece alguém que sofreu um ataque cibernético?", options: [{ label: "Sim", value: 2 }, { label: "Conheço casos", value: 1 }, { label: "Não", value: 0 }] },
+      { text: "2. Você sabe se os dispositivos da sua equipe estão realmente protegidos?", options: [{ label: "Sim", value: 0 }, { label: "Tenho dúvidas", value: 1 }, { label: "Não sei", value: 2 }] },
+      { text: "3. Seus colaboradores usam os próprios dispositivos para acessar dados da empresa?", options: [{ label: "Sim, com controle", value: 1 }, { label: "Sim, sem controle", value: 2 }, { label: "Não", value: 0 }] },
+      { text: "4. Em caso de vazamento de dados, sua empresa sabe como reagir?", options: [{ label: "Sim, temos plano de ação", value: 0 }, { label: "Mais ou menos", value: 1 }, { label: "Não sabemos", value: 2 }] },
+      { text: "5. Quanto vale para sua empresa evitar um prejuízo com perda de dados ou ataques?", options: [{ label: "Inestimável", value: 0 }, { label: "Até 10 mil", value: 1 }, { label: "Até 50 mil", value: 2 }, { label: "Até 100 mil", value: 3 }] }
+    ];
+    const perguntasTI = [
+      { texto: "1. Você já analisou se scripts nativos do Windows como PowerShell, WMI ou PsExec estão sendo usados por usuários não autorizados ou processos suspeitos na rede?", opcoes: [{ texto: "Nunca parei para pensar nisso.", valor: 2 }, { texto: "Já vi esse tipo de comando rodando, mas achei que era normal.", valor: 1 }, { texto: "Temos um monitoramento constante e alertas em tempo real para esse tipo de atividade.", valor: 0 }] },
+      { texto: "2. Quantos dispositivos da sua rede estão atualmente com o sistema operacional desatualizado ou sem os últimos patches de segurança aplicados?", opcoes: [{ texto: "Não sei informar.", valor: 2 }, { texto: "Alguns, mas atualizamos quando dá tempo.", valor: 1 }, { texto: "Todos estão sob política de atualização automatizada e validada.", valor: 0 }] },
+      { texto: "3. Você sabe se algum funcionário está utilizando softwares ou dispositivos pessoais (BYOD) sem passar pelo crivo de segurança da empresa?", opcoes: [{ texto: "Provavelmente sim, mas não temos controle sobre isso.", valor: 2 }, { texto: "Sim, mas deixamos usar desde que não acessem o sistema interno.", valor: 1 }, { texto: "Só é permitido acesso de dispositivos autorizados e gerenciados.", valor: 0 }] },
+      { texto: "4. Como você controla e monitora acessos administrativos e privilégios elevados dentro da sua infraestrutura de TI?", opcoes: [{ texto: "Todo mundo usa o mesmo acesso, não diferenciamos muito.", valor: 2 }, { texto: "Temos usuários diferenciados, mas sem controle detalhado.", valor: 1 }, { texto: "Todos os acessos são controlados, auditados e limitados por função.", valor: 0 }] },
+      { texto: "5. Alguma vez você já testou se sua solução atual de proteção identificaria um ransomware antes que ele criptografasse seus arquivos?", opcoes: [{ texto: "Nunca testei isso.", valor: 2 }, { texto: "Já pensamos nisso, mas confiamos na solução atual.", valor: 1 }, { texto: "Temos testes e simulações periódicas de incidentes como esse.", valor: 0 }] },
+      { texto: "6. Se um colaborador clicar em um link malicioso agora, sua solução atual saberia bloquear a cadeia completa do ataque?", opcoes: [{ texto: "Acho que não.", valor: 2 }, { texto: "Talvez bloquearia o início, mas não sei o resto.", valor: 1 }, { texto: "Sim, nossa proteção cobre o ciclo completo de ataque.", valor: 0 }] },
+      { texto: "7. Você tem visibilidade em tempo real sobre o que está acontecendo em cada endpoint da empresa, incluindo laptops remotos?", opcoes: [{ texto: "Não, só quando o colaborador relata algum problema.", valor: 2 }, { texto: "Apenas em alguns equipamentos mais críticos.", valor: 1 }, { texto: "Sim, temos uma console centralizada com visibilidade total.", valor: 0 }] },
+      { texto: "8. Caso um ataque aconteça agora, quanto tempo você levaria para detectar, isolar e remediar a máquina afetada?", opcoes: [{ texto: "Horas ou talvez dias.", valor: 2 }, { texto: "Provavelmente conseguiríamos agir rápido, mas não sei dizer exatamente.", valor: 1 }, { texto: "Conseguimos isolar e agir em minutos com procedimentos automatizados.", valor: 0 }] },
+      { texto: "9. Como você protege os dados sensíveis e credenciais armazenadas localmente ou em nuvem?", opcoes: [{ texto: "Não sei ao certo onde estão nem como estão protegidos.", valor: 2 }, { texto: "Usamos senhas fortes e controle de acesso básico.", valor: 1 }, { texto: "Temos criptografia, segmentação e autenticação multifator ativa.", valor: 0 }] },
+      { texto: "10. Sua atual solução de segurança permite automatizar resposta a incidentes e aplicar políticas em massa com facilidade?", opcoes: [{ texto: "Não, fazemos tudo manualmente.", valor: 2 }, { texto: "Temos alguma automação, mas não é muito eficaz.", valor: 1 }, { texto: "Sim, conseguimos automatizar desde a detecção até a remediação.", valor: 0 }] },
+      { texto: "11. Na sua percepção, por onde ocorrem a maioria das tentativas de ataque à infraestrutura da empresa?", opcoes: [{ texto: "Pela rede — por isso confio plenamente no meu firewall/roteador para barrar as ameaças.", valor: 2 }, { texto: "Pelo e-mail ou navegação dos usuários — mas ainda não temos um controle avançado sobre isso.", valor: 1 }, { texto: "Nos endpoints — sabemos que ali é onde o ataque realmente se concretiza, por isso monitoramos e protegemos cada estação.", valor: 0 }] },
+      { texto: "12. Qual das afirmações abaixo mais se aproxima da política de proteção da sua empresa atualmente?", opcoes: [{ texto: "Usamos apenas o Windows Defender e consideramos suficiente, pois seguimos boas práticas.", valor: 2 }, { texto: "Nossos servidores são Linux, então não nos preocupamos tanto com proteção adicional.", valor: 2 }, { texto: "Utilizamos soluções dedicadas para proteger endpoints e servidores, independentemente do sistema operacional.", valor: 0 }] }
+    ];
+    // Estado do questionário
+    let currentQuestion = 0;
+    let answers = [];
+    let activeSet = [];
+    let activeType = null;
+    // VARIÁVEL GLOBAL PARA ARMAZENAR OS DADOS DO FORMULÁRIO DE CONTATO
+    let formUserData = {};
+
+    function proceedToForm(type) {
+      activeType = type;
+      currentQuestion = 0;
+      answers = [];
+      activeSet = type === 'ti' ? perguntasTI : perguntasProprietario;
+
+      roleSelectionScreen.style.display = 'none';
+      formulario.classList.remove('hidden');
+      renderQuestion();
+      document.getElementById('questionCard').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderQuestion() {
+      const q = activeSet[currentQuestion];
+      const total = activeSet.length;
+      const percent = Math.round(((currentQuestion + 1) / total) * 100);
+      document.getElementById('progressText').innerText = `Pergunta ${currentQuestion + 1} de ${total}`;
+      document.getElementById('progressPercent').innerText = `${percent}%`;
+      document.getElementById('progressFill').style.width = `${percent}%`;
+
+      let html = `<h2 class="text-xl font-semibold text-gray-800 mb-2">${q.text || q.texto}</h2><div class="space-y-3 mb-8">`;
+      (q.options || q.opcoes).forEach((opt, index) => {
+        html += `          <div class="option-item cursor-pointer border-2 border-gray-200 rounded-lg p-4 flex items-center transition-all duration-200 hover:border-blue-300" onclick="selectOption(${index})" id="option-${index}">            <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center mr-3">              <i class="checkmark fas fa-check text-white"></i>            </div>            <div><h3 class="font-medium">${opt.label || opt.texto}</h3></div>          </div>`;
+      });
+      html += `</div>        <div class="flex justify-between">          <button type="button" onclick="prevQuestion()" class="px-4 py-2 text-gray-500 font-medium rounded-lg hover:bg-gray-50 transition-colors" ${currentQuestion === 0 ? 'disabled class="opacity-50 cursor-not-allowed"' : ''}>            <i class="fas fa-arrow-left mr-2"></i> Voltar          </button>          <button type="button" onclick="nextQuestion()" class="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center">            ${currentQuestion === activeSet.length - 1 ? 'Finalizar' : 'Próximo'} <i class="fas fa-arrow-right ml-2"></i>          </button>        </div>`;
+
+      document.getElementById('questionCard').innerHTML = html;
+      highlightSelection();
+    }
+
+    function selectOption(index) {
+      answers[currentQuestion] = index;
+      highlightSelection();
+    }
+
+    function highlightSelection() {
+      const items = document.querySelectorAll('#questionCard .option-item');
+      items.forEach((el, i) => {
+        const isSelected = answers[currentQuestion] === i;
+        el.classList.toggle('option-selected', isSelected);
+        const check = el.querySelector('.checkmark');
+        if (check) check.style.display = isSelected ? 'block' : 'none';
+      });
+    }
+
+    function nextQuestion() {
+      if (answers[currentQuestion] === undefined) return alert("Por favor, selecione uma opção.");
+      if (currentQuestion < activeSet.length - 1) {
+        currentQuestion++;
+        renderQuestion();
+      } else {
+        showFormularioDados();
+      }
+    }
+
+    function prevQuestion() {
+      if (currentQuestion > 0) {
+        currentQuestion--;
+        renderQuestion();
+      }
+    }
+
+    // --- Funções de Navegação de Formulário ---
+    function showFormularioDados() {
+      document.getElementById("questionCard").classList.add("hidden");
+      document.getElementById("progressContainer").classList.add("hidden");
+      document.getElementById("formularioDados").classList.remove("hidden");
+      document.getElementById("formularioDados").scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // FUNÇÃO ENVIAR FORMULÁRIO (AGORA COM ENVIO PARA O GOOGLE SHEETS)
+    async function enviarFormulario() {
+      const campos = ['nome', 'telefone', 'email', 'empresa', 'computadores'];
+      let valido = true;
+      const alerta = document.getElementById('alerta');
+
+      // 1. Validação e Coleta de Dados do Contato
+      formUserData = {};
+      campos.forEach(id => {
+        const campo = document.getElementById(id);
+        const valor = campo.value.trim();
+        campo.classList.remove('border-red-500');
+
+        if (!valor) {
+          campo.classList.add('border-red-500');
+          valido = false;
+        }
+        formUserData[id] = valor;
+      });
+
+      if (!valido) {
+        alerta.classList.remove('hidden');
+        return;
+      }
+
+      alerta.classList.add('hidden');
+
+      // 2. Cálculo do Score e Risco (para envio)
+      const { finalScore, finalRisk } = showResult(true); // Chamada para obter dados sem animação
+
+      // 3. Preparação dos Dados para Envio
+      const dataToSend = {
+        'Nome': formUserData.nome,
+        'Telefone': formUserData.telefone,
+        'Email': formUserData.email,
+        'Empresa': formUserData.empresa,
+        'Computadores': formUserData.computadores,
+        'Perfil': activeType === 'ti' ? 'TI' : 'Proprietário',
+        'Score': finalScore,
+        'Risco': finalRisk
+      };
+
+      // 4. Envio dos Dados para o Google Sheets (Apps Script)
+      try {
+        await fetch(WEB_APP_URL, {
+          method: 'POST',
+          mode: 'no-cors', 
+          cache: 'no-cache',
+          headers: {
+            'Content-Type': 'application/json' 
+          },
+          body: JSON.stringify(dataToSend) 
+        });
+
+        console.log("Dados enviados com sucesso para o Google Sheets.");
+
+      } catch (error) {
+        console.error('Erro ao enviar dados para o Google Sheets:', error);
+      }
+      
+      // 5. Exibe o resultado (com animação)
+      document.getElementById('formularioDados').classList.add("hidden");
+      showResult(false);
+    }
+    
+    // --- Lógica do Disco de Progresso e Resultado ---
+    const DISK_SIZE = 250;
+    const DISK_RADIUS = DISK_SIZE / 2 - 12;
+    const DISK_CIRCUMFERENCE = 2 * Math.PI * DISK_RADIUS;
+
+    function animateProgressDisk(wrapperEl, targetPercentage, colorClass, scoreText) {
+        wrapperEl.innerHTML = `
+            <svg width="${DISK_SIZE}" height="${DISK_SIZE}">
+                <circle class="progress-bg" cx="${DISK_SIZE / 2}" cy="${DISK_SIZE / 2}" r="${DISK_RADIUS}"></circle>
+                <circle class="progress-bar ${colorClass}" cx="${DISK_SIZE / 2}" cy="${DISK_SIZE / 2}" r="${DISK_RADIUS}"
+                    stroke-dasharray="${DISK_CIRCUMFERENCE}"
+                    stroke-dashoffset="${DISK_CIRCUMFERENCE}"></circle>
+            </svg>
+            <div class="progress-main-text" id="diskScoreText">${scoreText}</div>
+        `;
+        const progressCircle = wrapperEl.querySelector('.progress-bar');
+        
+        // Timeout para garantir que a animação CSS ocorra
+        setTimeout(() => {
+          let current = 0;
+          const step = () => {
+              if (current <= targetPercentage) {
+                  const offset = DISK_CIRCUMFERENCE - (DISK_CIRCUMFERENCE * current / 100);
+                  progressCircle.setAttribute("stroke-dashoffset", offset);
+                  current++;
+                  requestAnimationFrame(step);
+              }
+          };
+          requestAnimationFrame(step);
+        }, 100);
+    }
+
+    // FUNÇÃO SHOW RESULT (AGORA COM PARÂMETRO getDataOnly)
+    function showResult(getDataOnly = false) {
+      // 1. Calcula a pontuação
+      let score = 0;
+      for (let i = 0; i < activeSet.length; i++) {
+        const ansIndex = answers[i];
+        if (ansIndex === undefined) continue;
+        if (activeType === 'ti') {
+          score += activeSet[i].opcoes[ansIndex].valor;
+        } else {
+          score += activeSet[i].options[ansIndex].value;
+        }
+      }
+
+      let msg = "";
+      let showWhats = false;
+      let diskColorClass = "";
+      let diskPercentage = 0;
+      let scoreLabel = "";
+      const WHATSAPP_NUMBER = "5531973517507"; 
+
+      // 2. Define o nível de risco e a porcentagem/cor do disco
+      if (activeType === 'proprietario') {
+        const maxScoreProprietario = perguntasProprietario.reduce((sum, q) => sum + Math.max(...q.options.map(o => o.value)), 0);
+
+        if (score <= 3) {
+          msg = "Risco Baixo";
+          scoreLabel = "Baixo";
+          diskColorClass = "green";
+        } else if (score <= 6) {
+          msg = "Risco Considerável";
+          scoreLabel = "Médio";
+          diskColorClass = "yellow";
+          showWhats = true;
+        } else {
+          msg = "Risco Alto";
+          scoreLabel = "Alto";
+          diskColorClass = "red";
+          showWhats = true;
+        }
+        diskPercentage = Math.round(100 - (score / maxScoreProprietario) * 100);
+
+      } else { // TI thresholds
+        const maxScoreTI = perguntasTI.reduce((sum, q) => sum + Math.max(...q.opcoes.map(o => o.valor)), 0);
+
+        if (score <= 6) {
+          msg = "Risco Baixo";
+          scoreLabel = "Baixo";
+          diskColorClass = "green";
+        } else if (score <= 15) {
+          msg = "Risco Considerável";
+          scoreLabel = "Médio";
+          diskColorClass = "yellow";
+          showWhats = true;
+        } else {
+          msg = "Risco Alto";
+          scoreLabel = "Alto";
+          diskColorClass = "red";
+          showWhats = true;
+        }
+        diskPercentage = Math.round(100 - (score / maxScoreTI) * 100);
+      }
+
+      if (diskPercentage < 0) diskPercentage = 0;
+
+      // NOVO: Se o modo for apenas para obter dados, retorne os valores e pare
+      if (getDataOnly) {
+        return { finalScore: score, finalRisk: msg };
+      }
+
+      // --- 3. Execução do Display (Somente se não for getDataOnly) ---
+
+      // CRIAÇÃO DA MENSAGEM PERSONALIZADA
+      const whatsappMessage = `Olá, quero saber como blindar o meu patrimônio digital!*Resultado da Avaliação: ${msg}*---*Dados do Contato:*Nome: ${formUserData.nome}Telefone: ${formUserData.telefone}E-mail: ${formUserData.email}Empresa: ${formUserData.empresa}Nº de computadores: ${formUserData.computadores}---*Perfil:* ${activeType === 'ti' ? 'TI' : 'Proprietário'}      `.trim();
+
+      const encodedMessage = encodeURIComponent(whatsappMessage);
+      const whatsappURL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+
+      // Injeta e anima o disco de progresso
+      const progressCircleWrapper = document.getElementById("progressCircleWrapper");
+      animateProgressDisk(progressCircleWrapper, diskPercentage, diskColorClass, scoreLabel);
+
+      // Atualiza a mensagem de texto e exibe o resultCard
+      const scoreMessageElement = document.getElementById("scoreMessage");
+      scoreMessageElement.innerText = msg;
+      scoreMessageElement.classList.remove('red', 'yellow', 'green');
+      scoreMessageElement.classList.add(diskColorClass);
+
+      const resultCard = document.getElementById("resultCard");
+      resultCard.classList.remove('hidden');
+
+      const waBtn = document.getElementById('whatsappButton');
+      if (showWhats) {
+        waBtn.classList.remove('hidden');
+        waBtn.href = whatsappURL;
+      } else {
+        waBtn.classList.add('hidden');
+        waBtn.href = "#";
+      }
+
+      resultCard.scrollIntoView({ behavior: 'smooth' });
+
+      // Retorno padrão (mesmo que não usado, mantém consistência)
+      return { finalScore: score, finalRisk: msg };
+    }
+    
+    // Safety: prevent form submissions reloading page if any button placed inside a form
+    document.addEventListener('submit', function (e) { e.preventDefault(); });
+  </script>
+</body>
+</html>
